@@ -54,14 +54,14 @@ def mainPage() {
 	 dynamicPage(name: "mainPage", title: "Dawon Connector", nextPage: null, uninstall: true, install: true) {
    		section("Request New Devices"){
         	input "address", "string", title: "Server address", required: true, description:"IP:Port. ex)192.168.0.100:30040"
-            input "extAddress", "string", title: "External Server address", required: false, description:"IP:Port. ex)aaa.iptime.org:30040"
-            input "token", "string", title: "Token value", required: false, description:"Token"
+        //    input "extAddress", "string", title: "External Server address", required: false, description:"IP:Port. ex)aaa.iptime.org:30040"
+        //    input "token", "string", title: "Token value", required: false, description:"Token"
         	href url:"http://${settings.address}", style:"embedded", required:false, title:"Local Management", description:"This makes you easy to setup"
         }
         
        	section() {
             paragraph "View this SmartApp's configuration to use it in other places."
-            href url:"${apiServerUrl("/api/smartapps/installations/${app.id}/config?access_token=${state.accessToken}")}", style:"embedded", required:false, title:"Config", description:"Tap, select, copy, then click \"Done\""
+            href url:"${localApiServerUrl("${app.id}/config?access_token=${state.accessToken}")}", style:"embedded", required:false, title:"Config", description:"Tap, select, copy, then click \"Done\""
        	}
     }
 }
@@ -83,7 +83,7 @@ def updated() {
 
     initialize()
     setAPIAddress()
-    updateExtAddress()
+//    updateExtAddress()
 }
 
 /**
@@ -136,17 +136,17 @@ def initialize() {
             "Content-Type": "application/json"
         ],
         "body":[
-            "app_url":"${apiServerUrl}/api/smartapps/installations/",
+            "app_url":localApiServerUrl(""),
             "app_id":app.id,
             "access_token":state.accessToken
         ]
     ]
     
-    def myhubAction = new physicalgraph.device.HubAction(options, null, [callback: null])
+    def myhubAction = new hubitat.device.HubAction(options, null, [callback: null])
     sendHubCommand(myhubAction)
 }
 
-def dataCallback(physicalgraph.device.HubResponse hubResponse) {
+def dataCallback(hubitat.device.HubResponse hubResponse) {
     def msg, json, status
     try {
         msg = parseLanMessage(hubResponse.description)
@@ -167,7 +167,7 @@ def getDataList(){
             "Content-Type": "application/json"
         ]
     ]
-    def myhubAction = new physicalgraph.device.HubAction(options, null, [callback: dataCallback])
+    def myhubAction = new hubitat.device.HubAction(options, null, [callback: dataCallback])
     sendHubCommand(myhubAction)
 }
 
@@ -233,7 +233,7 @@ def renderConfig() {
             [
                 platform: "SmartThings DW Connector",
                 name: "DW Connector",
-                app_url: apiServerUrl("/api/smartapps/installations/"),
+                app_url: localApiServerUrl(""),
                 app_id: app.id,
                 access_token:  state.accessToken
             ]
@@ -245,16 +245,10 @@ def renderConfig() {
 }
 
 mappings {
-    if (!params.access_token || (params.access_token && params.access_token != state.accessToken)) {
-        path("/config")                         { action: [GET: "authError"] }
-        path("/list")                         	{ action: [GET: "authError"]  }
-        path("/update")                         { action: [POST: "authError"]  }
-        path("/add")                         	{ action: [POST: "authError"]  }
 
-    } else {
-        path("/config")                         { action: [GET: "renderConfig"]  }
-        path("/list")                         	{ action: [GET: "getDeviceList"]  }
-        path("/update")                         { action: [POST: "updateDevice"]  }
-        path("/add")                         	{ action: [POST: "addDevice"]  }
-    }
+	path("/config")                         { action: [GET: "renderConfig"]  }
+	path("/list")                         	{ action: [GET: "getDeviceList"]  }
+	path("/update")                         { action: [POST: "updateDevice"]  }
+	path("/add")                         	{ action: [POST: "addDevice"]  }
+    
 }
