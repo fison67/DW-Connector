@@ -43,9 +43,6 @@ metadata {
         attribute "feeType", "string"
         attribute "feeDate", "string"
         
-        command "chartHour"
-        command "chartDay"
-        command "chartMonth"
         
 	}
 
@@ -53,61 +50,6 @@ metadata {
     
     preferences {
         input name: "childLock", title:"Power Lock. It can't be power off." , type: "enum", required: true, defaultValue: "off", options: ["on", "off"]
-	}
-
-	tiles(scale: 2) {
-		multiAttributeTile(name:"switch", type: "generic", width: 6, height: 4){
-			tileAttribute ("device.switch", key: "PRIMARY_CONTROL") {
-                attributeState "on", label:'${name}', action:"switch.off", icon:"https://github.com/fison67/DW-Connector/blob/master/icons/dawon-on.png?raw=true", backgroundColor:"#00a0dc", nextState:"turningOff"
-                attributeState "off", label:'${name}', action:"switch.on", icon:"https://github.com/fison67/DW-Connector/blob/master/icons/dawon-off.png?raw=true", backgroundColor:"#ffffff", nextState:"turningOn"
-                
-                attributeState "turningOn", label:'${name}', action:"switch.off", icon:"https://github.com/fison67/DW-Connector/blob/master/icons/dawon-on.png?raw=true", backgroundColor:"#00a0dc", nextState:"turningOff"
-                attributeState "turningOff", label:'${name}', action:"switch.on", icon:"https://github.com/fison67/DW-Connector/blob/master/icons/dawon-off.png?raw=true", backgroundColor:"#ffffff", nextState:"turningOn"
-			}
-            
-            tileAttribute("device.power", key: "SECONDARY_CONTROL") {
-    			attributeState("default", label:'Meter: ${currentValue} w\n ',icon: "st.Health & Wellness.health9")
-            }
-            tileAttribute("device.lastCheckin", key: "SECONDARY_CONTROL") {
-    			attributeState("default", label:'\nUpdated: ${currentValue}',icon: "st.Health & Wellness.health9")
-            }
-		}
-        valueTile("power", "device.power", width:2, height:2, inactiveLabel: false, decoration: "flat" ) {
-        	state "power", label: '현재\n${currentValue} w', defaultState: true
-		}    
-        valueTile("energy", "device.energy", width:2, height:2, inactiveLabel: false, decoration: "flat" ) {
-        	state "energy", label: '누적\n${currentValue}kWh', defaultState: true
-        }
-        standardTile("refresh", "device.refresh", inactiveLabel: false, decoration: "flat", width: 2, height: 2) {
-            state "default", label:"", action:"refresh", icon:"st.secondary.refresh"
-        }
-        valueTile("modelId", "device.modelId", width:2, height:1, inactiveLabel: false, decoration: "flat" ) {
-        	state "modelId", label: '${currentValue}', defaultState: true
-		}   
-        valueTile("feeType", "device.feeType", width:4, height:1, inactiveLabel: false, decoration: "flat" ) {
-        	state "feeType", label: '요금: ${currentValue}', defaultState: true
-		} 
-        valueTile("feeDate", "device.feeDate", width:2, height:1, inactiveLabel: false, decoration: "flat" ) {
-        	state "feeDate", label: '정산일: ${currentValue}', defaultState: true
-		} 
-        
-        standardTile("chartMode", "device.chartMode", width: 3, height: 1, decoration: "flat") {
-			state "hour", label:'Hour', nextState: "day", action: 'chartHour'
-			state "day", label:'Day', nextState: "month", action: 'chartDay'
-			state "month", label:'Month', nextState: "hour", action: 'chartMonth'
-		}
-        carouselTile("history", "device.image", width: 6, height: 4) { }
-        
-        valueTile("emptyLabel", "device.emptyLabel", width:2, height:1, inactiveLabel: false, decoration: "flat" ) {
-        	state "emptyLabel", label: 'External:', defaultState: true
-		}  
-        valueTile("externalAddress", "device.externalAddress", width:4, height:1, inactiveLabel: false, decoration: "flat" ) {
-        	state "externalAddress", label: '${currentValue}', defaultState: true
-		} 
-        
-        main (["switch"])
-        details(["switch", "power", "energy", "refresh", "modelId", "feeType", "feeDate", "chartMode", "history", "emptyLabel", "externalAddress"])
-        
 	}
 }
 
@@ -122,11 +64,6 @@ def setInfo(String app_url, String id) {
     state.id = id
     
     refresh()
-}
-
-def setExternalAddress(addr){
-	state.externalAddress = addr
-    sendEvent(name: "externalAddress", value: addr)
 }
 
 def setToken(token){
@@ -197,7 +134,7 @@ def refresh(){
     sendCommand(options, callback)
 }
 
-def callback(physicalgraph.device.HubResponse hubResponse){
+def callback(hubitat.device.HubResponse hubResponse){
 	def msg
     try {
         msg = parseLanMessage(hubResponse.description)
@@ -230,11 +167,10 @@ def callback(physicalgraph.device.HubResponse hubResponse){
     }
 }
 
-def updated() {
-}
+def updated() {}
 
 def sendCommand(options, _callback){
-	def myhubAction = new physicalgraph.device.HubAction(options, null, [callback: _callback])
+	def myhubAction = new hubitat.device.HubAction(options, null, [callback: _callback])
     sendHubCommand(myhubAction)
 }
 
@@ -249,52 +185,4 @@ def makeCommand(body){
         "body":body
     ]
     return options
-}
-
-def chartHour() {
-    httpGet(makeURL("hour")) { response ->
-    	processImage(response, "hour")
-    }
-}
-
-def chartDay() {
-    httpGet(makeURL("day")) { response ->
-    	processImage(response, "day")
-    }
-}
-
-def chartMonth() {
-    httpGet(makeURL("month")) { response ->
-    	processImage(response, "month")
-    }
-}
-
-def processImage(response, type){
-	if (response.status == 200 && response.headers.'Content-Type'.contains("image/png")) {
-        def imageBytes = response.data
-        if (imageBytes) {
-            try {
-                storeImage(getPictureName(type), imageBytes)
-            } catch (e) {
-                log.error "Error storing image ${name}: ${e}"
-            }
-        }
-    } else {
-        log.error "Image response not successful or not a jpeg response"
-    }
-}
-
-private getPictureName(type) {
-  def pictureUuid = java.util.UUID.randomUUID().toString().replaceAll('-', '')
-  return "image" + "_$pictureUuid" + "_" + type + ".png"
-}
-
-def makeURL(type){
-	return [
-        uri: "http://${state.externalAddress}",
-        path: "/devices/api/graph/${state.id}/${type}",
-        headers: [
-        	"x-csrf-token": state.token
-        ]
-    ]
 }
