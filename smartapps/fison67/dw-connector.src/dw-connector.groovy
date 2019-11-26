@@ -1,5 +1,5 @@
 /**
- *  DW Connector (v.0.0.2)
+ *  DW Connector (v.0.0.3)
  *
  * MIT License
  *
@@ -53,8 +53,8 @@ preferences {
 def mainPage() {
 	 dynamicPage(name: "mainPage", title: "Dawon Connector", nextPage: null, uninstall: true, install: true) {
    		section("Request New Devices"){
-        	input "address", "string", title: "Server address", required: true, description:"IP:Port. ex)192.168.0.100:30040"
-            input "extAddress", "string", title: "External Server address", required: false, description:"IP:Port. ex)aaa.iptime.org:30040"
+        	input "address", "text", title: "Server address", required: true, description:"IP:Port. ex)192.168.0.100:30040"
+            input "extAddress", "text", title: "External Server address", required: false, description:"IP:Port. ex)aaa.iptime.org:30040"
             input "token", "string", title: "Token value", required: false, description:"Token"
         	href url:"http://${settings.address}", style:"embedded", required:false, title:"Local Management", description:"This makes you easy to setup"
         }
